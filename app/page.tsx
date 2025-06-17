@@ -15,6 +15,8 @@ export default function Home() {
         <Link href="/products" style={{ color: "#fff", textDecoration: "none", fontSize: 18 }}>Ver Productos</Link>
         <Link href="/createProduct" style={{ color: "#fff", textDecoration: "none", fontSize: 18 }}>Crear Producto</Link>
         <Link href="/createAuction" style={{ color: "#fff", textDecoration: "none", fontSize: 18 }}>Crear Subasta</Link>
+        <Link href="/createBid" style={{ color: "#fff", textDecoration: "none", fontSize: 18 }}>Realizar Puja</Link>
+               <Link href="/user" style={{ color: "#fff", textDecoration: "none", fontSize: 18 }}>Registrar Usuario</Link>
       </nav>
       <div style={{
         minHeight: "calc(100vh - 64px)",
@@ -77,6 +79,16 @@ export default function Home() {
               textDecoration: "none",
               transition: "background 0.2s"
             }}>Crear Subasta</Link>
+            <Link href="/createBid" style={{
+              background: "#ff9800",
+              color: "#fff",
+              padding: "14px 0",
+              borderRadius: 8,
+              fontWeight: "bold",
+              fontSize: 18,
+              textDecoration: "none",
+              transition: "background 0.2s"
+            }}>Realizar Puja</Link>
           </div>
         </div>
       </div>
