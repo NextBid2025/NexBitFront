@@ -50,7 +50,6 @@ const RegisterForm = () => {
     name: "",
     lastName: "",
     email: "",
-    password: "",
     phone: "",
     address: "",
   });
@@ -67,7 +66,7 @@ const RegisterForm = () => {
     setMessage("");
 
     // Validación simple
-    if (!form.name || !form.lastName || !form.email || !form.password) {
+    if (!form.name || !form.lastName || !form.email) {
       setMessage("Por favor, completa todos los campos obligatorios.");
       setLoading(false);
       return;
@@ -81,17 +80,16 @@ const RegisterForm = () => {
           name: form.name,
           lastName: form.lastName,
           email: form.email,
-          password: form.password,
-          phone: form.phone,
-          address: form.address,
           roleId: "65b2d8e7c9f0a1b2c3d4e5f8",
+          address: form.address,
+          phone: form.phone,
         }),
       });
+      const data = await res.json();
       if (res.ok) {
         setMessage("Registro exitoso. Por favor revisa tu correo para confirmar tu cuenta.");
-        setForm({ name: "", lastName: "", email: "", password: "", phone: "", address: "" });
+        setForm({ name: "", lastName: "", email: "", phone: "", address: "" });
       } else {
-        const data = await res.json();
         setMessage(data.message || "Error al registrar usuario.");
       }
     } catch (err) {
@@ -111,9 +109,6 @@ const RegisterForm = () => {
 
         <label style={labelStyle} htmlFor="email">Correo</label>
         <input style={inputStyle} name="email" id="email" type="email" placeholder="Correo" value={form.email} onChange={handleChange} required />
-
-        <label style={labelStyle} htmlFor="password">Contraseña</label>
-        <input style={inputStyle} name="password" id="password" type="password" placeholder="Contraseña" value={form.password} onChange={handleChange} required />
 
         <label style={labelStyle} htmlFor="phone">Teléfono</label>
         <input style={inputStyle} name="phone" id="phone" placeholder="Teléfono" value={form.phone} onChange={handleChange} />
