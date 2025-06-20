@@ -58,6 +58,15 @@ const messageStyle: React.CSSProperties = {
   textAlign: "center",
 };
 
+const forgotStyle: React.CSSProperties = {
+  display: "block",
+  marginTop: "16px",
+  textAlign: "center",
+  color: "#0A2463",
+  textDecoration: "underline",
+  cursor: "pointer",
+};
+
 export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -73,6 +82,8 @@ export default function LoginPage() {
     setLoading(true);
     setMessage("");
     try {
+      // Si usas Keycloak, aquí deberías redirigir o usar el SDK de Keycloak
+      // Si usas tu backend propio:
       const res = await fetch("http://localhost:5103/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -81,8 +92,8 @@ export default function LoginPage() {
       const data = await res.json();
       if (res.ok && data.token) {
         localStorage.setItem("token", data.token);
-        setMessage("Inicio de sesión exitoso.");
-        router.push("/"); // Redirige al inicio o dashboard
+        setMessage("");
+        router.push("/"); // Redirige al dashboard o inicio
       } else {
         setMessage(data.message || "Credenciales incorrectas o cuenta no activada.");
       }
@@ -90,6 +101,13 @@ export default function LoginPage() {
       setMessage("Error de conexión con el servidor.");
     }
     setLoading(false);
+  };
+
+  const handleForgotPassword = () => {
+    // Si usas Keycloak, redirige a la URL de recuperación de Keycloak
+    // window.location.href = "URL_DE_KEYCLOAK_RECUPERAR_CONTRASENA";
+    // Si usas tu propio backend, redirige a tu página de recuperación
+    router.push("/forgot-password");
   };
 
   return (
@@ -124,6 +142,9 @@ export default function LoginPage() {
           </button>
           {message && <div style={messageStyle}>{message}</div>}
         </form>
+        <span style={forgotStyle} onClick={handleForgotPassword}>
+          ¿Olvidaste tu contraseña?
+        </span>
       </div>
     </div>
   );
