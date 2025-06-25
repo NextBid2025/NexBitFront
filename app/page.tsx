@@ -1,3 +1,5 @@
+"use client";
+import React from "react";
 import Link from "next/link";
 
 export default function Home() {
@@ -91,6 +93,10 @@ export default function Home() {
             }}>Realizar Puja</Link>
           </div>
         </div>
+      </div>
+      <div style={{ textAlign: "center", marginTop: 80 }}>
+        <h1>¡Bienvenido a NextBid!</h1>
+        <p>Has iniciado sesión correctamente.</p>
       </div>
     </>
   );

@@ -1,6 +1,7 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Keycloak from "keycloak-js";
 
 const headerStyle: React.CSSProperties = {
   background: "#0A2463",
@@ -67,84 +68,59 @@ const forgotStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
+const keycloakConfig = {
+  url: "http://localhost:8080/auth",
+  realm: "master",
+  clientId: "Usersclient",
+};
+
+const keycloak = new Keycloak(keycloakConfig);
+
+// Función para hacer peticiones autenticadas con Keycloak
+export async function fetchWithKeycloak(url: string, options: RequestInit = {}) {
+  if (!keycloak.token) {
+    throw new Error("No autenticado con Keycloak");
+  }
+  const headers = {
+    ...(options.headers || {}),
+    Authorization: `Bearer ${keycloak.token}`,
+    "Content-Type": "application/json",
+  };
+  return fetch(url, { ...options, headers });
+}
+
 export default function LoginPage() {
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
   const router = useRouter();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage("");
-    try {
-      // Si usas Keycloak, aquí deberías redirigir o usar el SDK de Keycloak
-      // Si usas tu backend propio:
-      const res = await fetch("http://localhost:5103/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+  useEffect(() => {
+    keycloak
+      .init({ onLoad: "login-required", checkLoginIframe: false })
+      .then(authenticated => {
+        if (authenticated) {
+          // Accede al correo desde el token
+          const email = keycloak.tokenParsed?.email;
+          console.log("Correo del usuario:", email);
+          // Puedes guardar el token si lo necesitas
+          localStorage.setItem("token", keycloak.token || "");
+          router.push("/"); // Redirige al inicio o dashboard
+        } else {
+          keycloak.login();
+        }
+      })
+      .catch(err => {
+        // Mostrar el error real en consola
+        console.error("Error en Keycloak init:", err);
+        alert("Error en autenticación Keycloak: " + (err?.message || JSON.stringify(err)));
       });
-      const data = await res.json();
-      if (res.ok && data.token) {
-        localStorage.setItem("token", data.token);
-        setMessage("");
-        router.push("/"); // Redirige al dashboard o inicio
-      } else {
-        setMessage(data.message || "Credenciales incorrectas o cuenta no activada.");
-      }
-    } catch {
-      setMessage("Error de conexión con el servidor.");
-    }
-    setLoading(false);
-  };
-
-  const handleForgotPassword = () => {
-    // Si usas Keycloak, redirige a la URL de recuperación de Keycloak
-    // window.location.href = "URL_DE_KEYCLOAK_RECUPERAR_CONTRASENA";
-    // Si usas tu propio backend, redirige a tu página de recuperación
-    router.push("/forgot-password");
-  };
+  }, [router]);
 
   return (
     <div>
       <header style={headerStyle}>Iniciar Sesión</header>
       <div style={formStyle}>
-        <form onSubmit={handleSubmit}>
-          <label style={labelStyle} htmlFor="email">Correo</label>
-          <input
-            style={inputStyle}
-            name="email"
-            id="email"
-            type="email"
-            placeholder="Correo"
-            value={form.email}
-            onChange={handleChange}
-            required
-          />
-          <label style={labelStyle} htmlFor="password">Contraseña</label>
-          <input
-            style={inputStyle}
-            name="password"
-            id="password"
-            type="password"
-            placeholder="Contraseña"
-            value={form.password}
-            onChange={handleChange}
-            required
-          />
-          <button style={buttonStyle} type="submit" disabled={loading}>
-            {loading ? "Ingresando..." : "Iniciar Sesión"}
-          </button>
-          {message && <div style={messageStyle}>{message}</div>}
-        </form>
-        <span style={forgotStyle} onClick={handleForgotPassword}>
-          ¿Olvidaste tu contraseña?
-        </span>
+        <div style={{ textAlign: "center", margin: "32px 0" }}>
+          Redirigiendo a Keycloak para autenticación...
+        </div>
       </div>
     </div>
   );

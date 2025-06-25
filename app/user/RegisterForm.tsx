@@ -73,7 +73,7 @@ const RegisterForm = () => {
     }
 
     try {
-      const res = await fetch("http://localhost:5103/api/users/create", {
+      const res = await fetch("http://localhost:5103/api/users/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -90,6 +90,7 @@ const RegisterForm = () => {
         setMessage("Registro exitoso. Por favor revisa tu correo para confirmar tu cuenta.");
         setForm({ name: "", lastName: "", email: "", phone: "", address: "" });
       } else {
+        // Muestra el mensaje de error del backend si existe
         setMessage(data.message || "Error al registrar usuario.");
       }
     } catch (err) {

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import Keycloak from "keycloak-js";
 
 const headerStyle: React.CSSProperties = {
   background: "#0A2463",
@@ -77,72 +78,15 @@ const messageStyle: React.CSSProperties = {
   textAlign: "center",
 };
 
-function LoginForm() {
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+const keycloakConfig = {
+  url: "http://localhost:8080/auth",
+  realm: "master",
+  clientId: "Usersclient",
+};
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+const keycloak = new Keycloak(keycloakConfig);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage("");
-    try {
-      const res = await fetch("http://localhost:5103/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (res.ok && data.token) {
-        localStorage.setItem("token", data.token);
-        setMessage("Inicio de sesión exitoso.");
-        // Redirige o recarga según tu lógica
-      } else {
-        setMessage(data.message || "Credenciales incorrectas o cuenta no activada.");
-      }
-    } catch {
-      setMessage("Error de conexión con el servidor.");
-    }
-    setLoading(false);
-  };
-
-  return (
-    <div style={formContainerStyle}>
-      <form onSubmit={handleSubmit}>
-        <label style={labelStyle} htmlFor="email">Correo</label>
-        <input
-          style={inputStyle}
-          name="email"
-          id="email"
-          type="email"
-          value={form.email}
-          onChange={handleChange}
-          required
-        />
-        <label style={labelStyle} htmlFor="password">Contraseña</label>
-        <input
-          style={inputStyle}
-          name="password"
-          id="password"
-          type="password"
-          value={form.password}
-          onChange={handleChange}
-          required
-        />
-        <button style={buttonStyle} type="submit" disabled={loading}>
-          {loading ? "Ingresando..." : "Iniciar Sesión"}
-        </button>
-        {message && <div style={messageStyle}>{message}</div>}
-      </form>
-    </div>
-  );
-}
-
-function RegisterForm() {
+const RegisterForm: React.FC = () => {
   const [form, setForm] = useState({
     usuario: "",
     name: "",
@@ -186,7 +130,12 @@ function RegisterForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (err) {
+        // Si la respuesta no es JSON, deja data vacío
+      }
       if (res.ok) {
         setMessage("Registro exitoso. Por favor revisa tu correo para confirmar tu cuenta.");
         setForm({
@@ -199,11 +148,14 @@ function RegisterForm() {
           phone: "",
           password: "",
         });
+
+        // Aquí podrías redirigir automáticamente al usuario a la pantalla de confirmación si lo deseas:
+        // window.location.href = "/confirm-account";
       } else {
-        setMessage(data.message || "Error al registrar usuario.");
+        setMessage((data as any).message || "Error al registrar usuario.");
       }
     } catch {
-      setMessage("Error de conexión con el servidor.");
+      setMessage("No se pudo conectar con el servidor.");
     }
     setLoading(false);
   };
@@ -246,6 +198,28 @@ function RegisterForm() {
 
 export default function UserPage() {
   const [tab, setTab] = useState<"login" | "register">("login");
+  const [authenticating, setAuthenticating] = useState(false);
+
+  const handleKeycloakLogin = () => {
+    setAuthenticating(true);
+    keycloak
+      .init({ onLoad: "login-required", checkLoginIframe: false })
+      .then(authenticated => {
+        if (authenticated) {
+          const email = keycloak.tokenParsed?.email;
+          console.log("Correo del usuario:", email);
+          localStorage.setItem("token", keycloak.token || "");
+          window.location.href = "/"; // Redirige al inicio o dashboard
+        } else {
+          keycloak.login();
+        }
+      })
+      .catch(err => {
+        setAuthenticating(false);
+        console.error("Error en Keycloak init:", err);
+        alert("Error en autenticación Keycloak: " + (err?.message || JSON.stringify(err)));
+      });
+  };
 
   return (
     <div>
@@ -253,7 +227,8 @@ export default function UserPage() {
       <div style={tabStyle}>
         <button
           style={tabButtonStyle(tab === "login")}
-          onClick={() => setTab("login")}
+          onClick={handleKeycloakLogin}
+          disabled={authenticating}
         >
           Iniciar Sesión
         </button>
@@ -264,7 +239,12 @@ export default function UserPage() {
           Registrar Usuario
         </button>
       </div>
-      {tab === "login" ? <LoginForm /> : <RegisterForm />}
+      {authenticating && (
+        <div style={{ textAlign: "center", margin: "32px 0" }}>
+          Redirigiendo a Keycloak para autenticación...
+        </div>
+      )}
+      {tab === "register" && <RegisterForm />}
     </div>
   );
 }
