@@ -14,26 +14,6 @@ const headerStyle: React.CSSProperties = {
   letterSpacing: "1px",
 };
 
-const tabStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "center",
-  marginBottom: "24px",
-};
-
-const tabButtonStyle = (active: boolean): React.CSSProperties => ({
-  background: active ? "#0A2463" : "#f7f9fa",
-  color: active ? "#fff" : "#0A2463",
-  border: "none",
-  borderBottom: active ? "2px solid #0A2463" : "2px solid #ccc",
-  padding: "12px 32px",
-  fontSize: "1rem",
-  fontWeight: "bold",
-  cursor: "pointer",
-  outline: "none",
-  borderRadius: active ? "8px 8px 0 0" : "8px 8px 0 0",
-  marginRight: "4px",
-});
-
 const formContainerStyle: React.CSSProperties = {
   maxWidth: "400px",
   margin: "0 auto",
@@ -133,9 +113,7 @@ const RegisterForm: React.FC = () => {
       let data = {};
       try {
         data = await res.json();
-      } catch (err) {
-        // Si la respuesta no es JSON, deja data vacío
-      }
+      } catch (err) {}
       if (res.ok) {
         setMessage("Registro exitoso. Por favor revisa tu correo para confirmar tu cuenta.");
         setForm({
@@ -148,9 +126,10 @@ const RegisterForm: React.FC = () => {
           phone: "",
           password: "",
         });
-
-        // Aquí podrías redirigir automáticamente al usuario a la pantalla de confirmación si lo deseas:
-        // window.location.href = "/confirm-account";
+        // Redirige al home después de 2 segundos
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 2000);
       } else {
         setMessage((data as any).message || "Error al registrar usuario.");
       }
@@ -194,57 +173,17 @@ const RegisterForm: React.FC = () => {
       </form>
     </div>
   );
-}
+};
 
-export default function UserPage() {
-  const [tab, setTab] = useState<"login" | "register">("login");
-  const [authenticating, setAuthenticating] = useState(false);
-
-  const handleKeycloakLogin = () => {
-    setAuthenticating(true);
-    keycloak
-      .init({ onLoad: "login-required", checkLoginIframe: false })
-      .then(authenticated => {
-        if (authenticated) {
-          const email = keycloak.tokenParsed?.email;
-          console.log("Correo del usuario:", email);
-          localStorage.setItem("token", keycloak.token || "");
-          window.location.href = "/"; // Redirige al inicio o dashboard
-        } else {
-          keycloak.login();
-        }
-      })
-      .catch(err => {
-        setAuthenticating(false);
-        console.error("Error en Keycloak init:", err);
-        alert("Error en autenticación Keycloak: " + (err?.message || JSON.stringify(err)));
-      });
-  };
-
+// Faltaba exportar el componente principal de la página
+export default function RegisterPage() {
   return (
     <div>
-      <header style={headerStyle}>Bienvenido</header>
-      <div style={tabStyle}>
-        <button
-          style={tabButtonStyle(tab === "login")}
-          onClick={handleKeycloakLogin}
-          disabled={authenticating}
-        >
-          Iniciar Sesión
-        </button>
-        <button
-          style={tabButtonStyle(tab === "register")}
-          onClick={() => setTab("register")}
-        >
-          Registrar Usuario
-        </button>
-      </div>
-      {authenticating && (
-        <div style={{ textAlign: "center", margin: "32px 0" }}>
-          Redirigiendo a Keycloak para autenticación...
-        </div>
-      )}
-      {tab === "register" && <RegisterForm />}
+      <header style={headerStyle}>Registro de Usuario</header>
+      <RegisterForm />
     </div>
   );
 }
+
+
+
