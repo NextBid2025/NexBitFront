@@ -6,50 +6,49 @@ import Link from "next/link";
 
 // --- Componente de notificaciones de subasta y pujas en tiempo real ---
 const SubastaComponent = ({ subastaId }: { subastaId: string }) => {
-  const [mensajes, setMensajes] = useState<string[]>([]);
-  const [precioActual, setPrecioActual] = useState<number | null>(null);
-  const [notificacionAuto, setNotificacionAuto] = useState<string | null>(null);
+  const [hubStatus, setHubStatus] = useState<string>("");
   const connectionRef = useRef<signalR.HubConnection | null>(null);
 
   useEffect(() => {
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl("http://localhost:5201/subastaHub")
+      .withUrl("http://localhost:5201/subastaHub", {
+        transport: signalR.HttpTransportType.LongPolling
+      })
       .withAutomaticReconnect()
       .build();
 
-    connection.start()
-      .then(() => {
-        console.log("Conectado a SignalR");
-        // Unirse a la sala de la subasta específica
-        if (subastaId) {
-          connection.invoke("JoinSubasta", subastaId);
-        }
-      })
-      .catch(err => console.error("Error de conexión:", err));
+    connection.on("ReceiveConnectionId", (connectionId) => {
+      // Unirse al grupo de la subasta justo después de recibir el ConnectionId
+      if (subastaId) {
+        connection.invoke("JoinSubasta", subastaId);
+      }
+    });
 
-    // Aquí se recibe la notificación de una nueva puja:
     connection.on("NuevaPuja", (data) => {
-      setMensajes(prev => [
-        `Nueva puja: Usuario ${data.userName || data.userId} ofertó $${data.monto}`,
-        ...prev,
-      ]);
-      setPrecioActual(data.monto);
+      setHubStatus("¡Nueva puja recibida!");
+      console.log("Datos de la nueva puja:", data);
     });
 
     connection.on("PujaInvalida", (data) => {
-      setMensajes(prev => [
-        `Puja inválida: ${data.mensaje}`,
-        ...prev,
-      ]);
+      setHubStatus("Puja inválida: " + data.mensaje);
     });
 
-    connection.on("NotificacionAutoPuja", (data) => {
-      setNotificacionAuto(`Puja automática: ${data.mensaje}`);
-      setMensajes(prev => [
-        `Puja automática: ${data.mensaje}`,
-        ...prev,
-      ]);
+    connection.onreconnecting(() => {
+      setHubStatus("Reconectando a SignalR...");
     });
+
+    connection.onclose(() => {
+      setHubStatus("Conexión cerrada.");
+    });
+
+    connection.start()
+      .then(() => {
+        setHubStatus("Conectado a SignalR.");
+        // Aquí NO invoques JoinSubasta, solo en ReceiveConnectionId
+      })
+      .catch(() => {
+        setHubStatus("Fallo al conectar con SignalR.");
+      });
 
     connectionRef.current = connection;
 
@@ -61,19 +60,11 @@ const SubastaComponent = ({ subastaId }: { subastaId: string }) => {
   return (
     <div style={{ marginTop: 32 }}>
       <Typography variant="h6" sx={{ color: "#0A2463" }}>Notificaciones de Subasta</Typography>
-      {precioActual !== null && (
-        <Typography sx={{ color: "#1976d2", fontWeight: "bold" }}>
-          Precio actual: ${precioActual}
+      {hubStatus && (
+        <Typography sx={{ color: "#1976d2", fontWeight: "bold", mb: 1 }}>
+          {hubStatus}
         </Typography>
       )}
-      {notificacionAuto && (
-        <Typography sx={{ color: "#d32f2f", fontWeight: "bold" }}>
-          {notificacionAuto}
-        </Typography>
-      )}
-      {mensajes.map((msg, idx) => (
-        <Typography key={idx}>{msg}</Typography>
-      ))}
     </div>
   );
 };
@@ -129,8 +120,18 @@ export default function CreateBid() {
         setAutoBid(false);
         setAutoBidMax("");
       } else {
-        const data = await res.json();
-        setMessage(data.message || "Error al realizar la puja.");
+        let data;
+        try {
+          data = await res.json();
+        } catch {
+          data = {};
+        }
+        // Mostrar mensaje específico si viene del backend
+        if (data.message === "El monto de la puja no respeta el incremento mínimo permitido.") {
+          setMessage(data.message);
+        } else {
+          setMessage(data.message || "Error al realizar la puja.");
+        }
       }
     } catch {
       setMessage("No se pudo conectar al microservicio de pujas.");
@@ -253,7 +254,7 @@ export default function CreateBid() {
         2. Realiza una puja desde una ventana. Deberías ver la notificación en tiempo real en todas las ventanas abiertas.
         3. Si el backend soporta puja automática, activa la opción (si está implementada en backend).
         4. Cuando otro usuario haga una puja mayor, el backend debe emitir el evento y la interfaz lo mostrará automáticamente.
-        5. Observa que el precio actual y los mensajes se actualizan sin recargar la página.
+        5. Observa que el precio current y los mensajes se actualizan sin recargar la página.
 
         Si ves los mensajes de "Nueva puja", "Puja inválida" o "Puja automática" en tiempo real en todas las ventanas, ¡la integración WebSocket funciona!
 

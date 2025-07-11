@@ -1,6 +1,8 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { logout } from "@/src/utils/auth"; // Ajusta la ruta si es necesario
 
 interface Product {
   nombre: string | { value: string };
@@ -130,9 +132,13 @@ const productBid: React.CSSProperties = {
   fontSize: 15,
 };
 
+const KEYCLOAK_LOGOUT_URL = "http://localhost:8080/realms/nexbit/protocol/openid-connect/logout";
+const REDIRECT_URI = "http://localhost:3000/"; // Usa la URL exacta registrada
+
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     fetch("http://localhost:5600/api/products/available")
@@ -143,6 +149,19 @@ export default function Home() {
       })
       .catch(() => setLoading(false));
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("http://localhost:5103/api/users/logout", {
+        method: "GET", // Cambia a GET si tu backend lo requiere
+        credentials: "include",
+      });
+    } catch (e) {
+      // Maneja el error si lo deseas
+    }
+    logout();
+    window.location.href = `${KEYCLOAK_LOGOUT_URL}?redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+  };
 
   return (
     <div style={mainBg}>
@@ -162,14 +181,27 @@ export default function Home() {
           <Link href="/createBid" style={navLink}>
             Crear Puja
           </Link>
-          <Link href="/contact" style={navLink}>
-            Contacto
+          <Link href="/profile" style={navLink}>
+            Mi perfil
           </Link>
         </div>
         <div style={navRight}>
-          <Link href="/login" style={navLink}>
-            Iniciar Sesión
-          </Link>
+          {/* Reemplaza Iniciar Sesión por Cerrar sesión */}
+          <button
+            onClick={handleLogout}
+            style={{
+              ...navLink,
+              background: "#e63946",
+              color: "#fff",
+              border: "none",
+              borderRadius: 6,
+              padding: "8px 22px",
+              fontWeight: "bold",
+              cursor: "pointer",
+            }}
+          >
+            Cerrar sesión
+          </button>
           <Link
             href="/user"
             style={{
@@ -242,3 +274,4 @@ export default function Home() {
     </div>
   );
 }
+

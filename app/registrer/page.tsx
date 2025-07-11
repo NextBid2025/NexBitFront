@@ -60,7 +60,7 @@ const messageStyle: React.CSSProperties = {
 
 const keycloakConfig = {
   url: "http://localhost:8080/auth",
-  realm: "master",
+  realm: "UsersSubasta2025",
   clientId: "Usersclient",
 };
 
@@ -184,6 +184,9 @@ export default function RegisterPage() {
     </div>
   );
 }
+
+
+
 
 
 

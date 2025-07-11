@@ -50,7 +50,7 @@ const styles = {
 // Configuración de Keycloak (ajusta estos valores)
 const keycloakConfig = {
   url: "http://localhost:8080", // Asegúrate de incluir /auth al final
-  realm: "master",
+  realm: "UsersSubasta2025",
   clientId: "Usersclient",
 };
 
