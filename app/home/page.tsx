@@ -184,6 +184,9 @@ export default function Home() {
           <Link href="/profile" style={navLink}>
             Mi perfil
           </Link>
+           <Link href="/reclamos" style={navLink}>
+            Reclamo
+          </Link>
         </div>
         <div style={navRight}>
           {/* Reemplaza Iniciar Sesión por Cerrar sesión */}
