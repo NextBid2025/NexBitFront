@@ -171,6 +171,7 @@ export default function ReclamosPage() {
     setLoading(true);
     setMensaje({ texto: "", tipo: "" });
 
+    // Construcción del FormData como en tu ejemplo
     const formData = new FormData();
     formData.append("usuarioId", form.usuarioId);
     formData.append("subastaId", form.subastaId);
@@ -183,8 +184,7 @@ export default function ReclamosPage() {
     try {
       const response = await fetch("http://localhost:5300/api/reclamos/create", {
         method: "POST",
-        body: formData,
-        credentials: "include",
+        body: formData
       });
 
       if (response.ok) {

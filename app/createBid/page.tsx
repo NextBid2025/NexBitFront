@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 import * as signalR from "@microsoft/signalr";
-import { Box, Button, TextField, Typography, Paper } from "@mui/material";
+import { Box, Button, TextField, Typography, Paper, Checkbox, FormControlLabel } from "@mui/material";
 import Link from "next/link";
 
 // --- Componente de notificaciones de subasta y pujas en tiempo real ---
@@ -91,25 +91,37 @@ export default function CreateBid() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
-    // Validación simple de usuario registrado y monto
     if (!form.userId || !form.subastaId || (!form.monto && !autoBid)) {
       setMessage("Completa todos los campos obligatorios.");
       return;
     }
     try {
-      const res = await fetch("http://localhost:5201/api/puja/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subastaId: form.subastaId,
-          userId: form.userId,
-          monto: autoBid ? undefined : parseFloat(form.monto),
-          fechaPuja: form.fechaPuja ? new Date(form.fechaPuja).toISOString() : new Date().toISOString(),
-          // autoBid y autoBidMax no se envían porque el microservicio no los acepta
-        }),
-      });
+      let res;
+      if (autoBid) {
+        // Puja automática (ajustado al JSON que muestras)
+        res = await fetch("http://localhost:5201/api/puja/puja-automatica", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: form.userId,
+            subastaId: form.subastaId,
+            monto: parseFloat(autoBidMax)
+          }),
+        });
+      } else {
+        // Puja normal
+        res = await fetch("http://localhost:5201/api/puja/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: form.userId,
+            subastaId: form.subastaId,
+            monto: parseFloat(form.monto)
+          }),
+        });
+      }
       if (res.ok) {
-        setMessage("¡Puja realizada con éxito!");
+        setMessage(autoBid ? "¡Puja automática registrada con éxito!" : "¡Puja realizada con éxito!");
         setShowRealtime(true);
         setForm({
           subastaId: form.subastaId,
@@ -126,7 +138,6 @@ export default function CreateBid() {
         } catch {
           data = {};
         }
-        // Mostrar mensaje específico si viene del backend
         if (data.message === "El monto de la puja no respeta el incremento mínimo permitido.") {
           setMessage(data.message);
         } else {
@@ -200,16 +211,18 @@ export default function CreateBid() {
                 onChange={handleChange}
                 required
               />
-              <TextField
-                name="monto"
-                label="Monto"
-                type="number"
-                fullWidth
-                value={form.monto}
-                onChange={handleChange}
-                required
-                inputProps={{ min: 0 }}
-              />
+              {!autoBid && (
+                <TextField
+                  name="monto"
+                  label="Monto"
+                  type="number"
+                  fullWidth
+                  value={form.monto}
+                  onChange={handleChange}
+                  required
+                  inputProps={{ min: 0 }}
+                />
+              )}
               <TextField
                 name="fechaPuja"
                 label="Fecha de Puja"
@@ -219,6 +232,27 @@ export default function CreateBid() {
                 value={form.fechaPuja}
                 onChange={handleChange}
               />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={autoBid}
+                    onChange={e => setAutoBid(e.target.checked)}
+                  />
+                }
+                label="Puja automática"
+              />
+              {autoBid && (
+                <TextField
+                  name="autoBidMax"
+                  label="Monto máximo automático"
+                  type="number"
+                  fullWidth
+                  value={autoBidMax}
+                  onChange={e => setAutoBidMax(e.target.value)}
+                  required
+                  inputProps={{ min: 0 }}
+                />
+              )}
               <Button
                 type="submit"
                 variant="contained"
@@ -235,7 +269,7 @@ export default function CreateBid() {
                 }}
                 fullWidth
               >
-                Realizar Puja
+                {autoBid ? "Registrar Puja Automática" : "Realizar Puja"}
               </Button>
             </div>
           </form>
